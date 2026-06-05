@@ -1,0 +1,139 @@
+
+Non Blynk :
+#include "DHT.h"
+
+#define DHTPIN D4
+#define DHTTYPE DHT22
+
+const int pinMQ = A0;
+const int pinFan = D5;
+const int pinLED = D6;
+
+const float BATAS_SUHU = 32.0;
+const int BATAS_GAS = 400;
+
+DHT dht(DHTPIN, DHTTYPE);
+
+void setup()
+{
+  Serial.begin(9600);
+
+  dht.begin();
+
+  pinMode(pinFan, OUTPUT);
+  pinMode(pinLED, OUTPUT);
+
+  digitalWrite(pinFan, LOW);
+  digitalWrite(pinLED, LOW);
+}
+
+void loop()
+{
+  float suhu = dht.readTemperature();
+  float kelembapan = dht.readHumidity();
+
+  int gas = analogRead(pinMQ);
+
+  Serial.println("==========");
+
+  Serial.print("Suhu : ");
+  Serial.println(suhu);
+
+  Serial.print("Kelembapan : ");
+  Serial.println(kelembapan);
+
+  Serial.print("Gas : ");
+  Serial.println(gas);
+
+  if(suhu >= BATAS_SUHU || gas >= BATAS_GAS)
+  {
+    digitalWrite(pinFan, HIGH);
+    digitalWrite(pinLED, HIGH);
+
+    Serial.println("KIPAS ON");
+    Serial.println("LED ON");
+  }
+  else
+  {
+    digitalWrite(pinFan, LOW);
+    digitalWrite(pinLED, LOW);
+
+    Serial.println("KIPAS OFF");
+    Serial.println("LED OFF");
+  }
+
+  delay(2000);
+}
+
+
+Blynk version :
+#define BLYNK_PRINT Serial
+
+#include <ESP8266WiFi.h>
+#include <BlynkSimpleEsp8266.h>
+#include "DHT.h"
+
+char auth[] = "TOKEN_BLYNK";
+char ssid[] = "NAMA_WIFI";
+char pass[] = "PASSWORD_WIFI";
+
+#define DHTPIN D4
+#define DHTTYPE DHT22
+
+const int pinMQ = A0;
+const int pinFan = D5;
+const int pinLED = D6;
+
+const float BATAS_SUHU = 32.0;
+const int BATAS_GAS = 400;
+
+DHT dht(DHTPIN, DHTTYPE);
+
+BlynkTimer timer;
+
+void kirimData()
+{
+  float suhu = dht.readTemperature();
+  float kelembapan = dht.readHumidity();
+
+  int gas = analogRead(pinMQ);
+
+  Blynk.virtualWrite(V0, suhu);
+  Blynk.virtualWrite(V1, kelembapan);
+  Blynk.virtualWrite(V2, gas);
+
+  if(suhu >= BATAS_SUHU || gas >= BATAS_GAS)
+  {
+    digitalWrite(pinFan, HIGH);
+    digitalWrite(pinLED, HIGH);
+
+    Blynk.virtualWrite(V3, 255);
+  }
+  else
+  {
+    digitalWrite(pinFan, LOW);
+    digitalWrite(pinLED, LOW);
+
+    Blynk.virtualWrite(V3, 0);
+  }
+}
+
+void setup()
+{
+  Serial.begin(9600);
+
+  dht.begin();
+
+  pinMode(pinFan, OUTPUT);
+  pinMode(pinLED, OUTPUT);
+
+  Blynk.begin(auth, ssid, pass);
+
+  timer.setInterval(2000L, kirimData);
+}
+
+void loop()
+{
+  Blynk.run();
+  timer.run();
+}
